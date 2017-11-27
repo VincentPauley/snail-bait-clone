@@ -93,7 +93,6 @@ const CONFIG = {
         frame_rate_indicator: document.getElementById( 'frame-rate-indicator' )
     }
 };
-
 /*
  * constructor: Platform
  *
@@ -214,7 +213,6 @@ platform_source_data.forEach( platform => {
         })
     );
 });
-
 /*
  * Function: initialize_images
  *
@@ -234,6 +232,45 @@ function initialize_images() {
         start_game();
     };
 }
+
+
+let platform_offset = 0,
+    platform_velocity = 0,
+    PLATFORM_VELOCITY_MULTIPLIER = 4.35;
+
+/*
+ * Function: set_platform_velocity
+ *
+ * Note: this could be a static variable at the moment, however once player movement is
+ * incorporated into the game velocity of the platforms will need to react to changes
+ * in direction, this function will expand in the future.
+ *
+ * Parameters: none
+ *
+ * Returns: VOID, updates globals
+ */
+function set_platform_velocity() {
+
+    // platforms move 4.35 times as fast as the background
+    platform_velocity = bg_velocity * PLATFORM_VELOCITY_MULTIPLIER;
+}
+/*
+ * Function: set_platform_offset
+ *
+ * modifies the global for platform offset by the last frame rate's duration to accurately
+ * supply the number to move platforms by.  This again applys the notion of:
+ *
+ * OBJECTS' VELOCITY * TIME SINCE LAST FRAME DRAWN = NEW OBJECT POSITION
+ *
+ * parameters: nonw
+ *
+ * Returns: VOID, updates globals
+ */
+function set_platform_offset() {
+
+    platform_offset += platform_velocity * ( last_frame_duration ) / 1000;
+
+}
 /*
  * Function draw_platforms
  *
@@ -247,7 +284,12 @@ function initialize_images() {
  */
 function draw_platforms() {
 
+    // TODO: understand this translation before and after objects are rendered?
+    CONTEXT.translate( -platform_offset, 0 );
+
     platform_data.forEach( platform => platform.render() );
+
+    CONTEXT.translate( platform_offset, 0 );
 }
 /*
  * Function: animate
@@ -268,7 +310,6 @@ function animate( now ) {
     draw( now ); // draw an animation frame
     requestNextAnimationFrame( animate ); // call this function continuously as browser is ready for frames
 }
-
 /*
  * Function: start_game
  *
@@ -318,7 +359,20 @@ function calculate_fps( now ) {
 
     last_animation_frame_time = now;
 }
-
+/*
+ * Function: set_offsets
+ *
+ * wrapper function around the functions that calculate coordinate offsets for the
+ * background and platforms in order to simulate motion.
+ *
+ * Parameters: none
+ *
+ * Returns: VOID, passes control to the distinct offset functions
+ */
+function set_offsets( now ) {
+    set_background_offset(now);
+    set_platform_offset();
+}
 /*
  * Function: draw
  *
@@ -331,7 +385,8 @@ function calculate_fps( now ) {
  */
 function draw(now) {
 
-    set_background_offset(now);
+    set_platform_velocity();
+    set_offsets(now);
 
     draw_background();
     draw_platforms();
@@ -388,12 +443,11 @@ let background_offset = 0; // constantly updated as frames are drawn.
 
 function draw_background() {
 
-    CONTEXT.translate( -background_offset, 0 );
-
     // draw the background twice, side-by-side for scrolling
+    CONTEXT.translate( -background_offset, 0 );
     CONTEXT.drawImage( background, 0, 0 );
-    CONTEXT.drawImage( background, background.width, 0 );
 
+    CONTEXT.drawImage( background, background.width, 0 );
     CONTEXT.translate( background_offset, 0 );
 }
 /*
